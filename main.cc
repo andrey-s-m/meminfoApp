@@ -25,7 +25,7 @@ MemInfo parseProcMeminfo()
     MemInfo meminfo;
 
     // The file /proc/meminfo usually contains about 50 lines.
-    // To avoid over-allocation, we can reserve memory:
+    // To avoid re-allocation, we can reserve memory:
     meminfo.reserve(64);
 
     // /proc/meminfo file format:
@@ -108,7 +108,13 @@ bool modifyAndPrintToFile(MemInfo& meminfo, const char* path)
         outFile << line << '\n';
     }
 
-    // outFile.close(); // Not necessary.
+    outFile.close();
+
+    if (outFile.fail()) {
+        std::cerr << "Failed to write data to file: " << path << '\n';
+        return false;
+    }
+
     return true;
 }
 
@@ -116,10 +122,15 @@ int main(int argc, const char* argv[])
 {
     if (argc < 2) {
         std::cout << "Run: " << argv[0] << " <output_file>\n";
-        return 0;
+        return 1;
     }
 
     auto meminfo = parseProcMeminfo();
+    if (meminfo.empty()) {
+        std::cerr << "Failed to read memory info\n";
+        return 1;
+    }
+
     sortMemInfoBySize(meminfo);
     if (!modifyAndPrintToFile(meminfo, argv[1])) {
         return 1;
